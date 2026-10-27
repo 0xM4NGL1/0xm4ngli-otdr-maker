@@ -228,7 +228,25 @@ export default function HomePage() {
 
               <div className="flex gap-2">
                 <button onClick={() => setPendingItem(null)} className="flex-1 py-2 rounded-xl text-xs font-bold bg-deep-blue/40 text-purple-200 hover:bg-deep-blue">Cancel</button>
-                <button onClick={async () => { if (!activeSr && !(pendingItem as any)._new) { setMessage('Select or create SR project'); setTimeout(() => setMessage(''), 3000); return; } const target = activeSr || newSrName.trim(); if (!target) return; const rename = renameValue[pendingItem.id] || pendingItem.name.replace('.sor',''); const res = await addToSrProject(pendingItem.relativePath, target, rename.trim()); setMessage('Copied to ' + target + '/' + res.targetName); setPendingItem(null); setActiveSr(target); setSrFiles(await listSrFiles(target)); setTimeout(() => setMessage(''), 3000); }} className="flex-1 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-neon-purple to-neon-blue text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]">Confirm</button>
+                <button onClick={async () => {
+                  try {
+                    if (!activeSr && !(pendingItem as any)._new) {
+                      if (!newSrName.trim()) { setMessage('Select or create an SR project'); setTimeout(() => setMessage(''), 3000); return; }
+                    }
+                    const target = activeSr || newSrName.trim();
+                    if (!target) { setMessage('No target SR project'); setTimeout(() => setMessage(''), 3000); return; }
+                    const rename = (renameValue[pendingItem!.id] || (pendingItem!.name || '').replace('.sor','')).trim();
+                    if (!rename) { setMessage('Enter a measurement name'); setTimeout(() => setMessage(''), 3000); return; }
+                    const res = await addToSrProject(pendingItem!.relativePath, target, rename);
+                    setMessage('Copied to ' + target + '/' + res.targetName);
+                    setPendingItem(null);
+                    setActiveSr(target);
+                    setSrFiles(await listSrFiles(target));
+                  } catch (e: any) {
+                    setMessage('Error: ' + (e?.message || String(e)));
+                  }
+                  setTimeout(() => setMessage(''), 3000);
+                }} className="flex-1 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-neon-purple to-neon-blue text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]">Confirm</button>
               </div>
             </div>
           </div>
