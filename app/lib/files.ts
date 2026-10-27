@@ -19,7 +19,7 @@ export function getOfficialFiles(): SorFile[] {
   const files: SorFile[] = [];
   const root = process.cwd();
   for (const folder of SOURCE_DIRS) {
-    const folderPath = path.join(root, folder);
+    const folderPath = path.join(/*turbopackIgnore: true*/ root, folder);
     if (!fs.existsSync(folderPath)) continue;
     const entries = fs.readdirSync(folderPath);
     for (const entry of entries) {
@@ -45,7 +45,7 @@ export function getOfficialFiles(): SorFile[] {
 
 export function ensureProjectDir(): string {
   const root = process.cwd();
-  const projectsDir = path.join(root, 'projects');
+  const projectsDir = path.join(/*turbopackIgnore: true*/ root, 'projects');
   if (!fs.existsSync(projectsDir)) {
     fs.mkdirSync(projectsDir, { recursive: true });
   }
@@ -55,7 +55,7 @@ export function ensureProjectDir(): string {
 export function getProjectNames(): string[] {
   ensureProjectDir();
   const root = process.cwd();
-  const projectsDir = path.join(root, 'projects');
+  const projectsDir = path.join(/*turbopackIgnore: true*/ root, 'projects');
   return fs.readdirSync(projectsDir).filter(f => {
     const p = path.join(projectsDir, f);
     return fs.statSync(p).isDirectory();
@@ -64,7 +64,7 @@ export function getProjectNames(): string[] {
 
 export function getProjectFiles(projectName: string): string[] {
   const root = process.cwd();
-  const projectPath = path.join(root, 'projects', projectName);
+  const projectPath = path.join(/*turbopackIgnore: true*/ root, 'projects', projectName);
   if (!fs.existsSync(projectPath)) return [];
   return fs.readdirSync(projectPath).filter(f => f.endsWith('.sor')).sort();
 }
@@ -75,8 +75,8 @@ export function copyFileToProject(
   targetName: string
 ): { copiedPath: string; fullTargetPath: string } {
   const root = process.cwd();
-  const sourcePath = path.join(root, sourceRelativePath);
-  const projectDir = path.join(root, 'projects', projectName);
+  const sourcePath = path.join(/*turbopackIgnore: true*/ root, sourceRelativePath);
+  const projectDir = path.join(/*turbopackIgnore: true*/ root, 'projects', projectName);
   if (!fs.existsSync(projectDir)) {
     fs.mkdirSync(projectDir, { recursive: true });
   }

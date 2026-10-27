@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 import fs from 'fs';
-import Archiver from 'archiver';
+import { Archiver } from 'archiver';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ project: string }> }) {
   const { project } = await params;
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const chunks: Buffer[] = [];
   archive.on('data', (chunk: Buffer) => chunks.push(chunk));
 
-  return new Promise((resolve, reject) => {
+  return new Promise<NextResponse>((resolve, reject) => {
     archive.on('end', () => {
       const fileBuffer = Buffer.concat(chunks);
       resolve(new NextResponse(fileBuffer, {

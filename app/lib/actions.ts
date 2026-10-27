@@ -22,14 +22,14 @@ export async function listSrFiles(srName: string) {
 
 export async function createSrProject(name: string) {
   const root = process.cwd();
-  const dir = path.join(root, 'projects', name);
+  const dir = path.join(/*turbopackIgnore: true*/ root, 'projects', name);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   return name;
 }
 
 export async function deleteSrProject(name: string) {
   const root = process.cwd();
-  const dir = path.join(root, 'projects', name);
+  const dir = path.join(/*turbopackIgnore: true*/ root, 'projects', name);
   if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
   return true;
 }
@@ -39,7 +39,7 @@ import { readDB, writeDB } from './db';
 export async function addToSrProject(sourcePath: string, srName: string, newName: string) {
   if (!srName) throw new Error('SR name required');
   const root = process.cwd();
-  const projDir = path.join(root, 'projects', srName);
+  const projDir = path.join(/*turbopackIgnore: true*/ root, 'projects', srName);
   if (!fs.existsSync(projDir)) fs.mkdirSync(projDir, { recursive: true });
   let targetName = newName || path.basename(sourcePath);
   if (!targetName.endsWith('.sor')) targetName += '.sor';
@@ -56,14 +56,14 @@ export async function addToSrProject(sourcePath: string, srName: string, newName
 
 export async function openFolder(projectName: string) {
   const root = process.cwd();
-  const dir = path.join(root, 'projects', projectName);
+  const dir = path.join(/*turbopackIgnore: true*/ root, 'projects', projectName);
   exec(`dolphin "${dir}"`);
   return true;
 }
 
 export async function deleteSrProjectFile(srName: string, fileName: string) {
   const root = process.cwd();
-  const p = path.join(root, 'projects', srName, fileName);
+  const p = path.join(/*turbopackIgnore: true*/ root, 'projects', srName, fileName);
   if (fs.existsSync(p)) fs.unlinkSync(p);
   return true;
 }
