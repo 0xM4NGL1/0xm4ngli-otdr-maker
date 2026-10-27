@@ -1,26 +1,80 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-void: #03030a;
+  --color-deep-purple: #0f0220;
+  --color-deep-blue: #0a0f2a;
+  --color-neon-purple: #a855f7;
+  --color-neon-blue: #3b82f6;
+  --color-glow-purple: #c084fc;
+  --color-glow-blue: #60a5fa;
+  --color-card: #0c0c1a;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-void);
+  color: #e8e8f8;
+  font-family: var(--font-sans);
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(168, 85, 247, 0.35);
+  color: #fff;
+}
+
+.glass-card {
+  background: rgba(12, 12, 26, 0.75);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(168, 85, 247, 0.15);
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.08), inset 0 0 20px rgba(59, 130, 246, 0.06);
+}
+
+.neon-text {
+  color: #f0e6ff;
+  text-shadow: 0 0 20px rgba(168, 85, 247, 0.6), 0 0 40px rgba(169, 85, 247, 0.25);
+}
+
+.neon-border-purple {
+  border-color: rgba(168, 85, 247, 0.35);
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.15);
+}
+
+.neon-border-blue {
+  border-color: rgba(59, 130, 246, 0.35);
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.15);
+}
+
+.drag-active {
+  border-color: rgba(168, 85, 247, 0.8) !important;
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.4), inset 0 0 20px rgba(59, 130, 246, 0.15);
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(12, 12, 26, 0.4);
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(168,85,247,0.6), rgba(59,130,246,0.6));
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(168,85,247,0.9), rgba(59,130,246,0.9));
+}
+.custom-scrollbar {
+  scrollbar-color: rgba(168,85,247,0.6) rgba(12,12,26,0.4);
+  scrollbar-width: thin;
 }
