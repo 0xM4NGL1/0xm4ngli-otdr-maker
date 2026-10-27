@@ -34,6 +34,8 @@ export async function deleteSrProject(name: string) {
   return true;
 }
 
+import { readDB, writeDB } from './db';
+
 export async function addToSrProject(sourcePath: string, srName: string, newName: string) {
   if (!srName) throw new Error('SR name required');
   const root = process.cwd();
