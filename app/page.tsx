@@ -241,8 +241,14 @@ export default function HomePage() {
                     if (!target) { setMessage('No target SR project'); setTimeout(() => setMessage(''), 3000); return; }
                     const rename = (renameValue[pendingItem!.id] || (pendingItem!.name || '').replace('.sor','')).trim();
                     if (!rename) { setMessage('Enter a measurement name'); setTimeout(() => setMessage(''), 3000); return; }
-                    const res = await addToSrProject(pendingItem!.relativePath, target, rename);
-                    setMessage('Copied to ' + target + '/' + res.targetName);
+                    const res = await fetch('/api/confirm', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ sourcePath: pendingItem!.relativePath, target, rename }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Failed');
+                    setMessage('Copied to ' + target + '/' + data.targetName);
                     setPendingItem(null);
                     setActiveSr(target);
                     setSrFiles(await listSrFiles(target));
