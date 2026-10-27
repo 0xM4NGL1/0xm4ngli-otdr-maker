@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OTDR Maker — BCP BEP Measurement",
+  title: "OTDR MAKER",
   description: "OTDR measurement folder manager by 0XM4NGLI",
 };
 
