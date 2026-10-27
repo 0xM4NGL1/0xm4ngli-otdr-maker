@@ -251,11 +251,18 @@ export default function HomePage() {
                     setMessage('Copied to ' + target + '/' + data.targetName);
                     setPendingItem(null);
                     setActiveSr(target);
-                    setSrFiles(await listSrFiles(target));
+                    // instant update without server refetch delay
+                    const newFile = data.targetName || (rename.trim().endsWith('.sor') ? rename.trim() : rename.trim() + '.sor');
+                    setSrFiles(prev => {
+                      const updated = prev.filter(f => f !== newFile);
+                      updated.push(newFile);
+                      updated.sort((a, b) => a.localeCompare(b));
+                      return updated;
+                    });
                   } catch (e: any) {
                     setMessage('Error: ' + (e?.message || String(e)));
                   }
-                  setTimeout(() => setMessage(''), 3000);
+                  setTimeout(() => setMessage(''), 800);
                 }} className="flex-1 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-neon-purple to-neon-blue text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]">Confirm</button>
               </div>
             </div>
