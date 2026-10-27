@@ -175,7 +175,7 @@ export default function HomePage() {
             </div>
 
              {activeSr && (
-                <a href={`/api/download/${encodeURIComponent(activeSr)}`} download={`${activeSr}.zip`} className="w-full mb-3 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-600 to-blue-400 text-white shadow-[0_0_8px_rgba(59,130,246,0.3)] hover:brightness-110 transition text-center inline-block">Download zip</a>
+                <a href={`/api/download/${encodeURIComponent(activeSr)}`} download={`${activeSr}.tar.gz`} className="w-full mb-3 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-600 to-blue-400 text-white shadow-[0_0_8px_rgba(59,130,246,0.3)] hover:brightness-110 transition text-center inline-block">Download zip</a>
               )}
 
             {/* Drop zone */}

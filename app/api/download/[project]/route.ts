@@ -9,20 +9,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const projDir = path.join(root, 'projects', project);
   if (!fs.existsSync(projDir)) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  const zipPath = path.join(root, 'projects', project + '.zip');
+  const archivePath = path.join(root, 'projects', project + '.tar.gz');
   try {
-    execSync(`zip -r "${zipPath}" "${projDir}" -x "*.zip"`, { stdio: 'pipe' });
-  } catch (e) {
-    return NextResponse.json({ error: 'Zip failed' }, { status: 500 });
+    const projName = path.basename(projDir);
+    const projParent = path.dirname(projDir);
+    execSync(`tar -czf "${archivePath}" -C "${projParent}" "${projName}"`, { stdio: 'pipe' });
+  } catch (e: any) {
+    return NextResponse.json({ error: 'Archive failed: ' + (e?.message || String(e)) }, { status: 500 });
   }
 
-  const fileBuffer = fs.readFileSync(zipPath);
-  fs.unlinkSync(zipPath);
+  const fileBuffer = fs.readFileSync(archivePath);
+  fs.unlinkSync(archivePath);
 
   return new NextResponse(fileBuffer, {
     headers: {
-      'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="${project}.zip"`,
+      'Content-Type': 'application/gzip',
+      'Content-Disposition': `attachment; filename="${project}.tar.gz"`,
     },
   });
 }
