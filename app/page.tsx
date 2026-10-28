@@ -206,7 +206,7 @@ export default function HomePage() {
                   <div className="min-w-0 mb-1">
                     <div className="font-bold text-white truncate">{fname.replace('.sor','')}</div>
                     {fname.replace('.sor','') !== (files.find(ff => ff.name === fname || ff.name === fname.replace('.sor','') + '.sor')?.meters ?? fname.replace('.sor','')) && (
-                      <div className="text-xs text-blue-300/50 font-mono">meter: {files.find(ff => ff.name === fname || ff.name === fname.replace('.sor','') + '.sor')?.meters ?? fname.replace('.sor','')}</div>
+                      <div className="text-xs text-blue-300/50 font-mono">meter: {fname.replace('.sor','')}</div>
                     )}
                   </div>
                   <div className="flex items-center gap-1">
