@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { listOfficialFiles, listSrProjects, listSrFiles, createSrProject, deleteSrProject, addToSrProject, deleteSrProjectFile, openFolder } from './lib/actions';
+import { listOfficialFiles, listSrProjects, listSrFiles, createSrProject, deleteSrProject, renameSrProject, addToSrProject, deleteSrProjectFile, openFolder } from './lib/actions';
 
 type SorFileItem = { id: string; name: string; folder: string; relativePath: string; sizeBytes: number; meters: number };
 type SrFileEntry = { name: string; source: string };
@@ -20,6 +20,8 @@ export default function HomePage() {
   const [renameValue, setRenameValue] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
   const [pendingItem, setPendingItem] = useState<SorFileItem | null>(null);
+  const [renamingSr, setRenamingSr] = useState<string | null>(null);
+  const [projectRenameValue, setProjectRenameValue] = useState('');
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -85,6 +87,27 @@ export default function HomePage() {
     await refreshSrProjects();
     setMessage('Meter deleted: ' + name);
     setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleRenameSr = async () => {
+    if (!renamingSr) return;
+    const next = projectRenameValue.trim();
+    if (!next) {
+      setMessage('Enter a folder name');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
+    try {
+      const res = await renameSrProject(renamingSr, next);
+      const renamed = res.name;
+      setMessage('SR folder renamed to ' + renamed);
+      setRenamingSr(null);
+      if (activeSr === renamingSr) setActiveSr(renamed);
+      await refreshSrProjects();
+    } catch (e: any) {
+      setMessage('Error: ' + (e?.message || String(e)));
+    }
+    setTimeout(() => setMessage(''), 800);
   };
 
   const handleDropFile = async (item: SorFileItem) => {
@@ -238,7 +261,19 @@ export default function HomePage() {
             {/* Focused meter display */}
             <div onClick={() => setShowSrFiles(!showSrFiles)} className={`rounded-2xl border-2 px-4 py-3 mb-2 text-center transition cursor-pointer select-none ${activeSr ? 'border-neon-purple bg-purple-950/20 shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'border-blue-500/20 bg-deep-blue/30'}`}>
               <div className="text-xs text-blue-300/60 uppercase tracking-widest font-bold mb-1">SR Folder</div>
-              <div className={`text-xl font-extrabold tracking-tight ${activeSr ? 'text-purple-100' : 'text-blue-300/40'}`}>{activeSr || 'none selected'}</div>
+              <div className={`relative text-xl font-extrabold tracking-tight ${activeSr ? 'text-purple-100' : 'text-blue-300/40'}`}>
+                <span className="block truncate px-8">{activeSr || 'none selected'}</span>
+                {activeSr && (
+                  <button
+                    onClick={e => { e.stopPropagation(); setRenamingSr(activeSr); setProjectRenameValue(activeSr); }}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 border border-purple-500/30 transition cursor-pointer"
+                    title="Rename SR folder"
+                    aria-label="Rename SR folder"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+                  </button>
+                )}
+              </div>
               {!activeSr && <div className="text-xs text-blue-300/40 mt-1">Click to select or create</div>}
             </div>
 
@@ -288,6 +323,20 @@ export default function HomePage() {
         </div>
 
         <footer className="mt-12 text-center text-xs text-purple-300/30 font-mono">OTDR Maker — Focused SR projects. Original .sor files preserved; only copies live inside /projects.</footer>
+
+        {renamingSr && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6" onClick={() => setRenamingSr(null)}>
+            <div className="glass-card rounded-3xl p-6 max-w-sm w-full shadow-[0_0_30px_rgba(168,85,247,0.25)]" onClick={e => e.stopPropagation()}>
+              <h3 className="text-xl font-extrabold tracking-tight mb-1">Rename SR folder</h3>
+              <p className="text-xs text-purple-300/60 mb-3">For {renamingSr}</p>
+              <input autoFocus type="text" value={projectRenameValue} onChange={e => setProjectRenameValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleRenameSr(); } }} placeholder="SR folder name" className="w-full bg-deep-blue/60 border border-purple-500/30 rounded-xl px-3 py-2 text-sm text-white placeholder-purple-300/40 focus:outline-none focus:border-neon-purple mb-3" />
+              <div className="flex gap-2">
+                <button onClick={() => setRenamingSr(null)} className="flex-1 py-2 rounded-xl text-xs font-bold bg-deep-blue/40 text-purple-200 hover:bg-deep-blue">Cancel</button>
+                <button onClick={handleRenameSr} className="flex-1 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-neon-purple to-neon-blue text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]">Rename</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {pendingItem && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6" onClick={() => setPendingItem(null)}>

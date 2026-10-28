@@ -44,6 +44,23 @@ export async function deleteSrProject(name: string) {
   return true;
 }
 
+export async function renameSrProject(oldName: string, newName: string) {
+  const root = process.cwd();
+  const projectsDir = path.join(/*turbopackIgnore: true*/ root, 'projects');
+  const oldPath = path.join(projectsDir, oldName);
+  if (!oldName || !fs.existsSync(oldPath)) throw new Error('SR project not found');
+
+  const clean = (newName || '').trim();
+  if (!clean) throw new Error('Name required');
+  if (clean === '.' || clean === '..' || /[\/\\]/.test(clean)) throw new Error('Invalid folder name');
+  if (clean === oldName) return { name: oldName };
+
+  const newPath = path.join(projectsDir, clean);
+  if (fs.existsSync(newPath)) throw new Error('SR project already exists');
+  fs.renameSync(oldPath, newPath);
+  return { name: clean };
+}
+
 export async function addToSrProject(sourcePath: string, srName: string, newName: string) {
   if (!srName) throw new Error('SR name required');
   const root = process.cwd();
