@@ -130,6 +130,61 @@ export default function HomePage() {
 
   const handleDragLeave = () => setDropOver(false);
 
+  const handleConfirm = async () => {
+    if (!pendingItem) return;
+    try {
+      if (!activeSr && !(pendingItem as any)._new) {
+        if (!newSrName.trim()) { setMessage('Select or create an SR project'); setTimeout(() => setMessage(''), 3000); return; }
+      }
+      const target = activeSr || newSrName.trim();
+      if (!target) { setMessage('No target SR project'); setTimeout(() => setMessage(''), 3000); return; }
+      const renameRaw = (renameValue[pendingItem.id] || (pendingItem.name || '').replace('.sor', '')).trim();
+      const rename = renameRaw ? renameRaw.toUpperCase() : (pendingItem.name || '').replace('.sor', '').toUpperCase();
+      if (!rename) { setMessage('Enter a measurement name'); setTimeout(() => setMessage(''), 3000); return; }
+
+      const isEdit = Boolean((pendingItem as any)._edit);
+      if (isEdit) {
+        const res = await fetch('/api/edit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ srName: target, oldName: pendingItem.name, newName: rename }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        const oldName = pendingItem.name;
+        const newName = data.targetName;
+        const source = data.source;
+        setSrFiles(prev => prev
+          .map(f => f.name === oldName ? { name: newName, source } : f)
+          .sort((a, b) => a.name.localeCompare(b.name)));
+        setMessage('Renamed to ' + newName);
+        setPendingItem(null);
+      } else {
+        const res = await fetch('/api/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sourcePath: pendingItem.relativePath, target, rename }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        setMessage('Copied to ' + target + '/' + data.targetName);
+        setPendingItem(null);
+        setActiveSr(target);
+        const newFile = data.targetName || (rename.trim().endsWith('.sor') ? rename.trim() : rename.trim() + '.sor');
+        const newSource = data.source || pendingItem.name;
+        setSrFiles(prev => {
+          const updated = prev.filter(f => f.name !== newFile);
+          updated.push({ name: newFile, source: newSource });
+          updated.sort((a, b) => a.name.localeCompare(b.name));
+          return updated;
+        });
+      }
+    } catch (e: any) {
+      setMessage('Error: ' + (e?.message || String(e)));
+    }
+    setTimeout(() => setMessage(''), 800);
+  };
+
   return (
     <main className="min-h-screen bg-void text-[#e8e8f8] relative overflow-x-hidden">
       <div className="fixed top-[-20%] left-[-15%] w-[900px] h-[900px] rounded-full bg-[rgba(168,85,247,0.12)] blur-[140px] pointer-events-none z-0" />
@@ -239,63 +294,11 @@ export default function HomePage() {
             <div className="glass-card rounded-3xl p-6 max-w-sm w-full shadow-[0_0_30px_rgba(168,85,247,0.25)]" onClick={e => e.stopPropagation()}>
               <h3 className="text-xl font-extrabold tracking-tight mb-1">Name measurement</h3>
               <p className="text-xs text-purple-300/60 mb-3">For {pendingItem.name}</p>
-              <input type="text" value={renameValue[pendingItem.id] ?? ((pendingItem as any)._edit ? pendingItem.name.replace(/\.sor$/i, '').toUpperCase() : '')} onChange={e => setRenameValue({...renameValue, [pendingItem.id]: e.target.value.toUpperCase()})} placeholder="Measurement name" className="w-full bg-deep-blue/60 border border-purple-500/30 rounded-xl px-3 py-2 text-sm text-white placeholder-purple-300/40 focus:outline-none focus:border-neon-purple mb-3" />
+              <input type="text" value={renameValue[pendingItem.id] ?? ((pendingItem as any)._edit ? pendingItem.name.replace(/\.sor$/i, '').toUpperCase() : '')} onChange={e => setRenameValue({...renameValue, [pendingItem.id]: e.target.value.toUpperCase()})} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleConfirm(); } }} placeholder="Measurement name" className="w-full bg-deep-blue/60 border border-purple-500/30 rounded-xl px-3 py-2 text-sm text-white placeholder-purple-300/40 focus:outline-none focus:border-neon-purple mb-3" />
 
               <div className="flex gap-2">
                 <button onClick={() => setPendingItem(null)} className="flex-1 py-2 rounded-xl text-xs font-bold bg-deep-blue/40 text-purple-200 hover:bg-deep-blue">Cancel</button>
-                <button onClick={async () => {
-                  try {
-                    if (!activeSr && !(pendingItem as any)._new) {
-                      if (!newSrName.trim()) { setMessage('Select or create an SR project'); setTimeout(() => setMessage(''), 3000); return; }
-                    }
-                    const target = activeSr || newSrName.trim();
-                    if (!target) { setMessage('No target SR project'); setTimeout(() => setMessage(''), 3000); return; }
-                    const renameRaw = (renameValue[pendingItem!.id] || (pendingItem!.name || '').replace('.sor','')).trim();
-                    const rename = renameRaw ? renameRaw.toUpperCase() : (pendingItem!.name || '').replace('.sor','').toUpperCase();
-                    if (!rename) { setMessage('Enter a measurement name'); setTimeout(() => setMessage(''), 3000); return; }
-
-                    const isEdit = Boolean((pendingItem as any)._edit);
-                    if (isEdit) {
-                      const res = await fetch('/api/edit', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ srName: target, oldName: pendingItem!.name, newName: rename }),
-                      });
-                      const data = await res.json();
-                      if (!res.ok) throw new Error(data.error || 'Failed');
-                      const oldName = pendingItem!.name;
-                      const newName = data.targetName;
-                      const source = data.source;
-                      setSrFiles(prev => prev
-                        .map(f => f.name === oldName ? { name: newName, source } : f)
-                        .sort((a, b) => a.name.localeCompare(b.name)));
-                      setMessage('Renamed to ' + newName);
-                      setPendingItem(null);
-                    } else {
-                      const res = await fetch('/api/confirm', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ sourcePath: pendingItem!.relativePath, target, rename }),
-                      });
-                      const data = await res.json();
-                      if (!res.ok) throw new Error(data.error || 'Failed');
-                      setMessage('Copied to ' + target + '/' + data.targetName);
-                      setPendingItem(null);
-                      setActiveSr(target);
-                      const newFile = data.targetName || (rename.trim().endsWith('.sor') ? rename.trim() : rename.trim() + '.sor');
-                      const newSource = data.source || pendingItem!.name;
-                      setSrFiles(prev => {
-                        const updated = prev.filter(f => f.name !== newFile);
-                        updated.push({ name: newFile, source: newSource });
-                        updated.sort((a, b) => a.name.localeCompare(b.name));
-                        return updated;
-                      });
-                    }
-                  } catch (e: any) {
-                    setMessage('Error: ' + (e?.message || String(e)));
-                  }
-                  setTimeout(() => setMessage(''), 800);
-                }} className="flex-1 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-neon-purple to-neon-blue text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]">Confirm</button>
+                <button onClick={handleConfirm} className="flex-1 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-neon-purple to-neon-blue text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]">Confirm</button>
               </div>
             </div>
           </div>
