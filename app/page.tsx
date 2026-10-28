@@ -228,7 +228,7 @@ export default function HomePage() {
             <div className="glass-card rounded-3xl p-6 max-w-sm w-full shadow-[0_0_30px_rgba(168,85,247,0.25)]" onClick={e => e.stopPropagation()}>
               <h3 className="text-xl font-extrabold tracking-tight mb-1">Name measurement</h3>
               <p className="text-xs text-purple-300/60 mb-3">For {pendingItem.name}</p>
-              <input type="text" value={renameValue[pendingItem.id] || ''} onChange={e => setRenameValue({...renameValue, [pendingItem.id]: e.target.value})} placeholder="Measurement name" className="w-full bg-deep-blue/60 border border-purple-500/30 rounded-xl px-3 py-2 text-sm text-white placeholder-purple-300/40 focus:outline-none focus:border-neon-purple mb-3" />
+              <input type="text" value={renameValue[pendingItem.id] || pendingItem.name.replace('.sor','')} onChange={e => setRenameValue({...renameValue, [pendingItem.id]: e.target.value})} placeholder="Measurement name" className="w-full bg-deep-blue/60 border border-purple-500/30 rounded-xl px-3 py-2 text-sm text-white placeholder-purple-300/40 focus:outline-none focus:border-neon-purple mb-3" />
 
               <div className="flex gap-2">
                 <button onClick={() => setPendingItem(null)} className="flex-1 py-2 rounded-xl text-xs font-bold bg-deep-blue/40 text-purple-200 hover:bg-deep-blue">Cancel</button>
