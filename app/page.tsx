@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { listOfficialFiles, listSrProjects, listSrFiles, createSrProject, deleteSrProject, renameSrProject, addToSrProject, deleteSrProjectFile, openFolder, createOfficialMeterFile } from './lib/actions';
+import { listOfficialFiles, listSrProjects, listSrFiles, createSrProject, deleteSrProject, renameSrProject, addToSrProject, deleteSrProjectFile, openFolder } from './lib/actions';
 
 type SorFileItem = { id: string; name: string; folder: string; relativePath: string; sizeBytes: number; meters: number };
 type SrFileEntry = { name: string; source: string };
@@ -14,7 +14,6 @@ export default function HomePage() {
   const [activeSr, setActiveSr] = useState('');
   const [srFiles, setSrFiles] = useState<SrFileEntry[]>([]);
   const [newSrName, setNewSrName] = useState('');
-  const [newMeter, setNewMeter] = useState('');
   const [dropOver, setDropOver] = useState(false);
   const [showSrFiles, setShowSrFiles] = useState(false);
   const [dragItem, setDragItem] = useState<string | null>(null);
@@ -68,28 +67,6 @@ export default function HomePage() {
 
   const handleSearch = async (val: string) => {
     setSearch(val);
-  };
-
-  const handleAddMeter = async () => {
-    const raw = newMeter.trim();
-    if (!raw) return;
-    const meter = Number(raw);
-    if (!Number.isInteger(meter) || meter < 1) {
-      setMessage('Enter a valid meter number');
-      setTimeout(() => setMessage(''), 3000);
-      return;
-    }
-    try {
-      const res = await createOfficialMeterFile(meter);
-      setNewMeter('');
-      await refreshFiles(search);
-      setMessage('Meter ' + meter + '.sor created');
-      setTimeout(() => setMessage(''), 2000);
-      return res;
-    } catch (e: any) {
-      setMessage('Error: ' + (e?.message || String(e)));
-      setTimeout(() => setMessage(''), 3000);
-    }
   };
 
   const handleCreateSr = async () => {
@@ -254,10 +231,6 @@ export default function HomePage() {
             </div>
             <p className="text-sm text-purple-200/60 mb-3">Drag any file to the right, or click <strong>Drop In</strong> to copy into the focused SR project.</p>
             <input type="text" value={search} onChange={(e) => handleSearch(e.target.value)} placeholder="Search files..." className="w-full mb-3 bg-deep-blue/60 border border-purple-500/30 rounded-xl px-3 py-2 text-xs text-white placeholder-purple-300/40 focus:outline-none focus:border-neon-purple/60" />
-            <div className="mb-3 flex gap-2">
-              <input type="text" inputMode="numeric" value={newMeter} onChange={e => setNewMeter(e.target.value.replace(/[^0-9]/g, ''))} onKeyDown={e => { if (e.key === 'Enter') handleAddMeter(); }} placeholder="Add missing meter (e.g. 1)" className="flex-1 bg-deep-blue/60 border border-purple-500/30 rounded-xl px-3 py-2 text-xs text-white placeholder-purple-300/40 focus:outline-none focus:border-neon-purple/60" />
-              <button onClick={handleAddMeter} className="flex items-center justify-center bg-gradient-to-r from-neon-purple to-neon-blue hover:brightness-110 text-white font-bold w-9 h-9 rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.3)] transition shrink-0 cursor-pointer" aria-label="Create meter .sor" title="Create meter .sor"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-            </div>
             <div className="overflow-y-auto max-h-[50vh] flex flex-wrap gap-3 content-start custom-scrollbar pr-2">
               {(search.trim() ? files.filter((f) => f.name.replace('.sor','').includes(search.trim())) : files).map((f) => (
                 <button key={f.id} draggable onDragStart={(e) => handleDragStart(e, f.id)} onDragEnd={handleDragEnd} onClick={() => setPendingItem(f)} className={`group relative w-24 h-28 rounded-2xl bg-deep-blue/60 border-[3px] border-blue-500/30 hover:border-neon-blue transition p-3 flex flex-col items-center justify-center gap-2 select-none cursor-grab active:cursor-grabbing overflow-hidden shadow-[0_0_15px_rgba(59,130,246,0.5),inset_0_0_12px_rgba(168,85,247,0.15)] hover:shadow-[0_0_25px_rgba(59,130,246,0.7),inset_0_0_18px_rgba(168,85,247,0.25)] ${dragItem === f.id ? 'ring-2 ring-neon-purple shadow-[0_0_30px_rgba(168,85,247,0.5)]' : ''}`} title="Add to focused SR project">

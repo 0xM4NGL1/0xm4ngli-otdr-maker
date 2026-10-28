@@ -10,7 +10,6 @@ import {
   removeFileSource,
   readSourceMap,
   writeSourceMap,
-  createMeterFile,
 } from './files';
 import fs from 'fs';
 import path from 'path';
@@ -21,10 +20,6 @@ export async function listOfficialFiles(queryStr?: string) {
   if (!queryStr || queryStr.trim() === '') return all;
   const q = queryStr.toLowerCase();
   return all.filter(f => f.name.toLowerCase().includes(q) || f.folder.toLowerCase().includes(q));
-}
-
-export async function createOfficialMeterFile(meter: number) {
-  return createMeterFile(meter);
 }
 
 export async function listSrProjects() {

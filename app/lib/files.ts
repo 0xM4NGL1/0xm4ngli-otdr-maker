@@ -122,49 +122,6 @@ export function getProjectFileEntries(projectName: string): { name: string; sour
   }));
 }
 
-function folderForMeter(meter: number): string {
-  if (meter <= 10) return '0-10';
-  if (meter <= 20) return '11-20';
-  if (meter <= 30) return '21-30';
-  if (meter <= 40) return '31-40';
-  if (meter <= 50) return '41-50';
-  if (meter <= 100) return '51-100';
-  if (meter <= 200) return '101-200';
-  if (meter <= 300) return '201-300';
-  return '301+';
-}
-
-/**
- * Create a missing meter .sor file by copying the nearest existing official
- * measurement. The file name is the meter number, so it behaves exactly like
- * the other official files (2.sor -> meter 2, 1.sor -> meter 1).
- */
-export function createMeterFile(meter: number): { name: string } {
-  if (!Number.isInteger(meter) || meter < 1) throw new Error('Invalid meter number');
-  const root = process.cwd();
-  const folder = folderForMeter(meter);
-  const dir = path.join(/*turbopackIgnore: true*/ root, folder);
-  const name = `${meter}.sor`;
-  const target = path.join(dir, name);
-  if (fs.existsSync(target)) throw new Error(`Meter ${meter} already exists`);
-
-  const all = getOfficialFiles();
-  if (!all.length) throw new Error('No official .sor file to copy');
-  const sameFolder = all.filter(f => f.folder === folder);
-  const pool = sameFolder.length ? sameFolder : all;
-  const template = pool.reduce((best, f) => {
-    const bestNum = parseInt(best.name, 10);
-    const fNum = parseInt(f.name, 10);
-    if (Number.isNaN(fNum)) return best;
-    if (Number.isNaN(bestNum)) return f;
-    return Math.abs(fNum - meter) < Math.abs(bestNum - meter) ? f : best;
-  });
-
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.copyFileSync(path.join(/*turbopackIgnore: true*/ root, template.relativePath), target);
-  return { name };
-}
-
 export function copyFileToProject(
   sourceRelativePath: string,
   projectName: string,
