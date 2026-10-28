@@ -1,5 +1,7 @@
 # OTDR Maker — BCP BEP Measurement
 
+![Preview](public/preview.png)
+
 Made by **0XM4NGLI**.
 
 A Next.js web app for organizing OTDR `.sor` measurement files into SR project folders. Drag official `.sor` files into focused projects, copy measurements, search by file number, and open the project folder in Dolphin (Arch Linux / Hyprland).
