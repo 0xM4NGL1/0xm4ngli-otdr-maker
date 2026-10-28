@@ -4,19 +4,30 @@ import { getOfficialFiles, getProjectNames, getProjectFiles, copyFileToProject, 
 import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
+import { query, initDB } from './postgres';
 
-export async function listOfficialFiles(query?: string) {
+export async function listOfficialFiles(queryStr?: string) {
   const all = getOfficialFiles();
-  if (!query || query.trim() === '') return all;
-  const q = query.toLowerCase();
+  if (!queryStr || queryStr.trim() === '') return all;
+  const q = queryStr.toLowerCase();
   return all.filter(f => f.name.toLowerCase().includes(q) || f.folder.toLowerCase().includes(q));
 }
 
 export async function listSrProjects() {
+  try {
+    await initDB();
+    const res = await query('SELECT name FROM sr_projects ORDER BY name');
+    if (res.rows.length) return res.rows.map((r: any) => r.name);
+  } catch { /* fall back to fs */ }
   return getProjectNames();
 }
 
 export async function listSrFiles(srName: string) {
+  try {
+    await initDB();
+    const res = await query('SELECT file_name FROM sr_files WHERE project_name = $1 ORDER BY file_name', [srName]);
+    if (res.rows.length) return res.rows.map((r: any) => r.file_name);
+  } catch { /* fall back to fs */ }
   return getProjectFiles(srName);
 }
 
@@ -24,6 +35,9 @@ export async function createSrProject(name: string) {
   const root = process.cwd();
   const dir = path.join(/*turbopackIgnore: true*/ root, 'projects', name);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  try {
+    await query('INSERT INTO sr_projects(name) VALUES($1) ON CONFLICT(name) DO NOTHING', [name]);
+  } catch {}
   return name;
 }
 
@@ -31,6 +45,7 @@ export async function deleteSrProject(name: string) {
   const root = process.cwd();
   const dir = path.join(/*turbopackIgnore: true*/ root, 'projects', name);
   if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
+  try { await query('DELETE FROM sr_projects WHERE name = $1', [name]); } catch {}
   return true;
 }
 
@@ -49,6 +64,9 @@ export async function addToSrProject(sourcePath: string, srName: string, newName
     targetName = `${base}-${i}.sor`;
   }
   const result = copyFileToProject(sourcePath, srName, targetName);
+  try {
+    await query('INSERT INTO sr_files(project_name, file_name) VALUES($1, $2) ON CONFLICT(project_name, file_name) DO NOTHING', [srName, targetName]);
+  } catch {}
   return { targetName, copiedPath: result.copiedPath };
 }
 
@@ -63,5 +81,8 @@ export async function deleteSrProjectFile(srName: string, fileName: string) {
   const root = process.cwd();
   const p = path.join(/*turbopackIgnore: true*/ root, 'projects', srName, fileName);
   if (fs.existsSync(p)) fs.unlinkSync(p);
+  try {
+    await query('DELETE FROM sr_files WHERE project_name = $1 AND file_name = $2', [srName, fileName]);
+  } catch {}
   return true;
 }
