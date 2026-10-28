@@ -21,6 +21,15 @@ export default function HomePage() {
   const [pendingItem, setPendingItem] = useState<SorFileItem | null>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    if (pendingItem && pendingItem.id) {
+      setRenameValue(prev => ({
+        ...prev,
+        [pendingItem.id]: (prev[pendingItem.id] || pendingItem.name.replace('.sor','') || '').toUpperCase(),
+      }));
+    }
+  }, [pendingItem]);
+
   const refreshFiles = useCallback(async (q?: string) => {
     const res = await listOfficialFiles(q);
     const sorted = [...res].sort((a, b) => {
@@ -240,7 +249,7 @@ export default function HomePage() {
                     const target = activeSr || newSrName.trim();
                     if (!target) { setMessage('No target SR project'); setTimeout(() => setMessage(''), 3000); return; }
                     const renameRaw = (renameValue[pendingItem!.id] || (pendingItem!.name || '').replace('.sor','')).trim();
-                    const rename = renameRaw.toUpperCase();
+                    const rename = renameRaw ? renameRaw.toUpperCase() : (pendingItem!.name || '').replace('.sor','').toUpperCase();
                     if (!rename) { setMessage('Enter a measurement name'); setTimeout(() => setMessage(''), 3000); return; }
                     const res = await fetch('/api/confirm', {
                       method: 'POST',
