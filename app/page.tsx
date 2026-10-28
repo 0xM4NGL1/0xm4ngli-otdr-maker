@@ -205,7 +205,7 @@ export default function HomePage() {
                 <div key={fname} className="group rounded-2xl bg-deep-blue/40 border border-blue-500/10 hover:border-neon-blue/40 p-3 transition overflow-hidden">
                   <div className="min-w-0 mb-1">
                     <div className="font-bold text-white truncate">{fname.replace('.sor','')}</div>
-                    <div className="text-xs text-blue-300/50 font-mono">meter: {fname.replace('.sor','')}</div>
+                    <div className="text-xs text-blue-300/50 font-mono">meter: {fname.replace('.sor','').replace(/-dup$/,'')}</div>
                   </div>
                   <div className="flex items-center gap-1">
                     <button onClick={() => { setPendingItem({ id: fname, name: fname, folder: activeSr || '', relativePath: activeSr ? activeSr + '/' + fname : fname, sizeBytes: 0, meters: 0 } as any); }} className="text-[10px] bg-blue-900/30 hover:bg-blue-900/60 text-blue-200 border border-blue-500/30 px-2 py-0.5 rounded transition cursor-pointer" title="Edit">Edit</button>
