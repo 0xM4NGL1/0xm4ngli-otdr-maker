@@ -1,6 +1,16 @@
 'use server';
 
-import { getOfficialFiles, getProjectNames, getProjectFiles, copyFileToProject, ensureProjectDir } from './files';
+import {
+  getOfficialFiles,
+  getProjectNames,
+  getProjectFileEntries,
+  copyFileToProject,
+  getFileSource,
+  setFileSource,
+  removeFileSource,
+  readSourceMap,
+  writeSourceMap,
+} from './files';
 import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
@@ -17,7 +27,7 @@ export async function listSrProjects() {
 }
 
 export async function listSrFiles(srName: string) {
-  return getProjectFiles(srName);
+  return getProjectFileEntries(srName);
 }
 
 export async function createSrProject(name: string) {
@@ -39,17 +49,57 @@ export async function addToSrProject(sourcePath: string, srName: string, newName
   const root = process.cwd();
   const projDir = path.join(/*turbopackIgnore: true*/ root, 'projects', srName);
   if (!fs.existsSync(projDir)) fs.mkdirSync(projDir, { recursive: true });
+
+  // If the source already lives in an SR project, inherit its ORIGINAL official name.
+  const projectsRoot = path.join(/*turbopackIgnore: true*/ root, 'projects');
+  const rel = path.relative(projectsRoot, path.join(/*turbopackIgnore: true*/ root, sourcePath));
+  const parts = rel.split(path.sep);
+  const sourceName = !rel.startsWith('..') && parts.length === 2
+    ? getFileSource(parts[0], parts[1])
+    : path.basename(sourcePath);
+
   let targetName = newName || path.basename(sourcePath);
   if (!targetName.endsWith('.sor')) targetName += '.sor';
   const targetPath = path.join(projDir, targetName);
   if (fs.existsSync(targetPath)) {
-    const base = targetName.replace('.sor', '');
+    const base = targetName.replace(/\.sor$/, '');
     let i = 1;
     while (fs.existsSync(path.join(projDir, `${base}-${i}.sor`))) i++;
     targetName = `${base}-${i}.sor`;
   }
   const result = copyFileToProject(sourcePath, srName, targetName);
-  return { targetName, copiedPath: result.copiedPath };
+  setFileSource(srName, targetName, sourceName);
+  return { targetName, source: sourceName, copiedPath: result.copiedPath };
+}
+
+export async function renameSrProjectFile(srName: string, oldName: string, newName: string) {
+  if (!srName) throw new Error('SR name required');
+  const root = process.cwd();
+  const projDir = path.join(/*turbopackIgnore: true*/ root, 'projects', srName);
+  const oldPath = path.join(projDir, oldName);
+  if (!fs.existsSync(oldPath)) throw new Error('File not found');
+
+  let targetName = (newName || '').trim();
+  if (!targetName) throw new Error('Name required');
+  if (!targetName.endsWith('.sor')) targetName += '.sor';
+
+  const sourceName = getFileSource(srName, oldName);
+  if (targetName === oldName) return { targetName, source: sourceName };
+
+  if (fs.existsSync(path.join(projDir, targetName))) {
+    const base = targetName.replace(/\.sor$/, '');
+    let i = 1;
+    while (fs.existsSync(path.join(projDir, `${base}-${i}.sor`))) i++;
+    targetName = `${base}-${i}.sor`;
+  }
+
+  fs.renameSync(oldPath, path.join(projDir, targetName));
+  const map = readSourceMap(srName);
+  delete map[oldName];
+  map[targetName] = sourceName;
+  writeSourceMap(srName, map);
+
+  return { targetName, source: sourceName };
 }
 
 export async function openFolder(projectName: string) {
@@ -63,5 +113,6 @@ export async function deleteSrProjectFile(srName: string, fileName: string) {
   const root = process.cwd();
   const p = path.join(/*turbopackIgnore: true*/ root, 'projects', srName, fileName);
   if (fs.existsSync(p)) fs.unlinkSync(p);
+  removeFileSource(srName, fileName);
   return true;
 }

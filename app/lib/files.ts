@@ -69,6 +69,59 @@ export function getProjectFiles(projectName: string): string[] {
   return fs.readdirSync(projectPath).filter(f => f.endsWith('.sor')).sort();
 }
 
+const SOURCE_MAP_FILE = '.sources.json';
+
+function projectDir(projectName: string): string {
+  return path.join(/*turbopackIgnore: true*/ process.cwd(), 'projects', projectName);
+}
+
+/** Per-project map: stored file name -> original official .sor file name. */
+export function readSourceMap(projectName: string): Record<string, string> {
+  try {
+    const raw = fs.readFileSync(path.join(projectDir(projectName), SOURCE_MAP_FILE), 'utf8');
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+  } catch {
+    // no metadata yet
+  }
+  return {};
+}
+
+export function writeSourceMap(projectName: string, map: Record<string, string>): void {
+  const dir = projectDir(projectName);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, SOURCE_MAP_FILE), JSON.stringify(map, null, 2));
+}
+
+export function setFileSource(projectName: string, fileName: string, sourceName: string): void {
+  const map = readSourceMap(projectName);
+  map[fileName] = sourceName;
+  writeSourceMap(projectName, map);
+}
+
+export function removeFileSource(projectName: string, fileName: string): void {
+  const map = readSourceMap(projectName);
+  if (map[fileName]) {
+    delete map[fileName];
+    writeSourceMap(projectName, map);
+  }
+}
+
+/** Original official file name for a stored file (falls back to the stored name). */
+export function getFileSource(projectName: string, fileName: string): string {
+  const map = readSourceMap(projectName);
+  if (map[fileName]) return map[fileName];
+  // legacy copies made before metadata existed
+  return fileName.replace(/-dup(?=\.sor$)/i, '');
+}
+
+export function getProjectFileEntries(projectName: string): { name: string; source: string }[] {
+  return getProjectFiles(projectName).map(name => ({
+    name,
+    source: getFileSource(projectName, name),
+  }));
+}
+
 export function copyFileToProject(
   sourceRelativePath: string,
   projectName: string,

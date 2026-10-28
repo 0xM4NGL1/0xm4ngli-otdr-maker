@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { listOfficialFiles, listSrProjects, listSrFiles, createSrProject, deleteSrProject, addToSrProject, deleteSrProjectFile, openFolder } from './lib/actions';
 
 type SorFileItem = { id: string; name: string; folder: string; relativePath: string; sizeBytes: number; meters: number };
+type SrFileEntry = { name: string; source: string };
 
 export default function HomePage() {
   const [files, setFiles] = useState<SorFileItem[]>([]);
@@ -11,7 +12,7 @@ export default function HomePage() {
   const [srSearch, setSrSearch] = useState('');
   const [srProjects, setSrProjects] = useState<string[]>([]);
   const [activeSr, setActiveSr] = useState('');
-  const [srFiles, setSrFiles] = useState<string[]>([]);
+  const [srFiles, setSrFiles] = useState<SrFileEntry[]>([]);
   const [newSrName, setNewSrName] = useState('');
   const [dropOver, setDropOver] = useState(false);
   const [showSrFiles, setShowSrFiles] = useState(false);
@@ -201,16 +202,16 @@ export default function HomePage() {
 
             {/* Files inside meter */}
             <div className="overflow-y-auto pr-2 space-y-2 flex-1 custom-scrollbar">
-              {srFiles.map((fname) => (
+              {srFiles.map(({ name: fname, source }) => (
                 <div key={fname} className="group rounded-2xl bg-deep-blue/40 border border-blue-500/10 hover:border-neon-blue/40 p-3 transition overflow-hidden">
                   <div className="min-w-0 mb-1">
-                    <div className="font-bold text-white truncate">{fname.replace('.sor','')}</div>
-                    <div className="text-xs text-blue-300/50 font-mono">meter: {fname.replace('.sor','').replace(/-dup$/,'')}</div>
+                    <div className="font-bold text-white truncate">{fname.replace(/\.sor$/i, '')}</div>
+                    <div className="text-xs text-blue-300/50 font-mono">meter: {source}</div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => { setPendingItem({ id: fname, name: fname, folder: activeSr || '', relativePath: activeSr ? activeSr + '/' + fname : fname, sizeBytes: 0, meters: 0 } as any); }} className="text-[10px] bg-blue-900/30 hover:bg-blue-900/60 text-blue-200 border border-blue-500/30 px-2 py-0.5 rounded transition cursor-pointer" title="Edit">Edit</button>
+                    <button onClick={() => { setPendingItem({ id: fname, name: fname, folder: activeSr || '', relativePath: 'projects/' + activeSr + '/' + fname, sizeBytes: 0, meters: 0, _edit: true } as any); }} className="text-[10px] bg-blue-900/30 hover:bg-blue-900/60 text-blue-200 border border-blue-500/30 px-2 py-0.5 rounded transition cursor-pointer" title="Edit">Edit</button>
                     <button onClick={() => { if (activeSr) { fetch('/api/delete', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ srName: activeSr, fileName: fname }) }).then(r => r.json()).then(() => { listSrFiles(activeSr).then(setSrFiles); setMessage('Removed'); setTimeout(() => setMessage(''), 800); }); } }} className="text-[10px] bg-red-900/30 hover:bg-red-900/60 text-red-200 border border-red-500/30 px-2 py-0.5 rounded transition cursor-pointer" title="Delete">Delete</button>
-                    <button onClick={async () => { if (!activeSr) return; try { const res = await fetch('/api/confirm', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ sourcePath: 'projects/' + activeSr + '/' + fname, target: activeSr, rename: fname.replace('.sor','') + '-dup' }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || 'Failed'); setMessage('Duplicated'); setTimeout(() => setMessage(''), 800); setTimeout(() => listSrFiles(activeSr).then(setSrFiles), 100); } catch (e:any) { setMessage('Error: ' + (e?.message || String(e))); setTimeout(() => setMessage(''), 800); } }} className="text-[10px] bg-green-900/30 hover:bg-green-900/60 text-green-200 border border-green-500/30 px-2 py-0.5 rounded transition cursor-pointer" title="Duplicate">Dup</button>
+                    <button onClick={async () => { if (!activeSr) return; try { const dupName = fname.replace(/\.sor$/i, '').toUpperCase() + '-DUP'; const res = await fetch('/api/confirm', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ sourcePath: 'projects/' + activeSr + '/' + fname, target: activeSr, rename: dupName }) }); const data = await res.json(); if (!res.ok) throw new Error(data.error || 'Failed'); setMessage('Duplicated'); setTimeout(() => setMessage(''), 800); setTimeout(() => listSrFiles(activeSr).then(setSrFiles), 100); } catch (e:any) { setMessage('Error: ' + (e?.message || String(e))); setTimeout(() => setMessage(''), 800); } }} className="text-[10px] bg-green-900/30 hover:bg-green-900/60 text-green-200 border border-green-500/30 px-2 py-0.5 rounded transition cursor-pointer" title="Duplicate">Dup</button>
                   </div>
                 </div>
               ))}
@@ -249,24 +250,44 @@ export default function HomePage() {
                     const renameRaw = (renameValue[pendingItem!.id] || (pendingItem!.name || '').replace('.sor','')).trim();
                     const rename = renameRaw ? renameRaw.toUpperCase() : (pendingItem!.name || '').replace('.sor','').toUpperCase();
                     if (!rename) { setMessage('Enter a measurement name'); setTimeout(() => setMessage(''), 3000); return; }
-                    const res = await fetch('/api/confirm', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ sourcePath: pendingItem!.relativePath, target, rename }),
-                    });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || 'Failed');
-                    setMessage('Copied to ' + target + '/' + data.targetName);
-                    setPendingItem(null);
-                    setActiveSr(target);
-                    // instant update without server refetch delay
-                    const newFile = data.targetName || (rename.trim().endsWith('.sor') ? rename.trim() : rename.trim() + '.sor');
-                    setSrFiles(prev => {
-                      const updated = prev.filter(f => f !== newFile);
-                      updated.push(newFile);
-                      updated.sort((a, b) => a.localeCompare(b));
-                      return updated;
-                    });
+
+                    const isEdit = Boolean((pendingItem as any)._edit);
+                    if (isEdit) {
+                      const res = await fetch('/api/edit', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ srName: target, oldName: pendingItem!.name, newName: rename }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error || 'Failed');
+                      const oldName = pendingItem!.name;
+                      const newName = data.targetName;
+                      const source = data.source;
+                      setSrFiles(prev => prev
+                        .map(f => f.name === oldName ? { name: newName, source } : f)
+                        .sort((a, b) => a.name.localeCompare(b.name)));
+                      setMessage('Renamed to ' + newName);
+                      setPendingItem(null);
+                    } else {
+                      const res = await fetch('/api/confirm', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sourcePath: pendingItem!.relativePath, target, rename }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error || 'Failed');
+                      setMessage('Copied to ' + target + '/' + data.targetName);
+                      setPendingItem(null);
+                      setActiveSr(target);
+                      const newFile = data.targetName || (rename.trim().endsWith('.sor') ? rename.trim() : rename.trim() + '.sor');
+                      const newSource = data.source || pendingItem!.name;
+                      setSrFiles(prev => {
+                        const updated = prev.filter(f => f.name !== newFile);
+                        updated.push({ name: newFile, source: newSource });
+                        updated.sort((a, b) => a.name.localeCompare(b.name));
+                        return updated;
+                      });
+                    }
                   } catch (e: any) {
                     setMessage('Error: ' + (e?.message || String(e)));
                   }
